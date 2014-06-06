@@ -74,6 +74,7 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
             'additional_funding_sources' => true,
             'refunds_source' => 'Balance',
             'sandbox' => true,
+            'test' => true,
         ), $this->get_payment_options() );
 
         $this->serverUrl = $this->options['sandbox'] ? self::SANDBOX_SERVER : self::PRODUCTION_SERVER;
@@ -113,6 +114,8 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
             'The exact name of the funds source (as named in your account) from which to initiate refunds.' );
         $this->add_settings_field_helper( 'sandbox', __( 'Sandbox Mode', 'camptix' ), array( $this, 'field_yesno' ),
             'To use Sandbox, you must also create an account at <strong><a href="https://uat.dwolla.com/" target="_blank">https://uat.dwolla.com/</a></strong> and follow the intial setup instructions to create an application and fill in the above "<strong>API Key</strong>" and "<strong>API Secret</strong>" using the credentials from the Sandbox application.' );
+        $this->add_settings_field_helper( 'test', __( 'Test Mode', 'camptix' ), array( $this, 'field_yesno' ),
+            'Set to "<strong>Yes</strong>" to run in test mode, regardless of sandbox or production mode. All transactions will have the transactionID of "1" and will process regardless of available funds.' ),
     }
 
     /**
@@ -166,6 +169,10 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
         if ( isset( $input['sandbox'] ) ) {
             $output['sandbox'] = (bool) $input['sandbox'];
             $this->serverUrl = (bool) $input['sandbox'] ? self::SANDBOX_SERVER : self::PRODUCTION_SERVER;
+        }
+
+        if ( isset( $input['test'] ) ) {
+            $output['test'] = (bool) $input['test'];
         }
 
         return $output;
@@ -557,7 +564,7 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
             'allowFundingSources' => $options['funding_sources'],
             'allowGuestCheckout' => $options['guest_checkout'],
             'additionalFundingSources' => $options['additional_funding_sources'],
-//            'test' => $options['sandbox'],
+            'test' => $options['test'],
         );
 
         $order = $this->get_order( $payment_token );
