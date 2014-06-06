@@ -13,8 +13,6 @@
  * @since CampTix 1.2
  */
 
-require_once dirname( __FILE__ ) . '/inc/dwolla.php';
-
 class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
 
     /**
