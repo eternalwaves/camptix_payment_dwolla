@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: CampTix Dwolla Gateway
- * Plugin URL: 
+ * Plugin URL: https://github.com/eternalwaves/camptix_payment_dwolla
  * Description: Dwolla Off-Site Gateway Payment Method for CampTix
  */
 
@@ -193,6 +193,8 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
 
     /**
      * Helps convert payment statuses from Dwolla responses, to CampTix payment statuses.
+     *
+     * @return
      */
     function get_status_from_string( $payment_status ) {
         $payment_status = strtolower($payment_status);
@@ -215,6 +217,9 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
         return $statuses[ $payment_status ];
     }
 
+    /**
+     * Helps convert payment statuses from Dwolla responses, to CampTix payment statuses.
+     */
     function get_transaction_details($transaction_id) {
         $options = $this->options;
 
