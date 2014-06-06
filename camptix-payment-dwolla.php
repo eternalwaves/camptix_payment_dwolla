@@ -113,7 +113,7 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
         $this->add_settings_field_helper( 'sandbox', __( 'Sandbox Mode', 'camptix' ), array( $this, 'field_yesno' ),
             'To use Sandbox, you must also create an account at <strong><a href="https://uat.dwolla.com/" target="_blank">https://uat.dwolla.com/</a></strong> and follow the intial setup instructions to create an application and fill in the above "<strong>API Key</strong>" and "<strong>API Secret</strong>" using the credentials from the Sandbox application.' );
         $this->add_settings_field_helper( 'test', __( 'Test Mode', 'camptix' ), array( $this, 'field_yesno' ),
-            'Set to "<strong>Yes</strong>" to run in test mode, regardless of sandbox or production mode. All transactions will have the transactionID of "1" and will process regardless of available funds.' ),
+            'Set to "<strong>Yes</strong>" to run in test mode, regardless of sandbox or production mode. All transactions will have the transactionID of "1" and will process regardless of available funds.' );
     }
 
     /**
