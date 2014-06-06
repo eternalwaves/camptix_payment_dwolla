@@ -199,7 +199,7 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
     /**
      * Helps convert payment statuses from Dwolla responses, to CampTix payment statuses.
      *
-     * @return
+     * @return string The status
      */
     function get_status_from_string( $payment_status ) {
         $payment_status = strtolower($payment_status);
@@ -640,6 +640,8 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
 
     /**
      * Submits a single, user-initiated refund request to Dwolla and returns the result
+     *
+     * @return string Payment status, if CampTix does not process the purchase and redirect (in case of errors or failed transaction)
      */
     function payment_refund( $payment_token ) {
         global $camptix;
@@ -678,8 +680,6 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
         if ( !$transaction_id )
             return $this->setError('No valid transaction ID.');
 
-        $this->log("Transaction ID: $transaction_id");
-
         $result = array(
             'token' => $payment_token,
             'transaction_id' => $transaction_id,
@@ -687,15 +687,13 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
 
         $transaction_details = $this->get_transaction_details( $transaction_id );
 
-        $this->log('$this->get_transaction_details( $transaction_id )' . print_r($transaction_details, true));
-
         if ( isset( $transaction_details['Success'] ) && true == $transaction_details['Success'] ) {
 
             if ( isset( $transaction_details['Response']['Amount'] ) )
                 $amount = $transaction_details['Response']['Amount'];
 
-//            if ( isset( $transaction_details['Response']['DestinationId'] ) )
-//                $funds_source = $transaction_details['Response']['DestinationId'];
+            if ( isset( $transaction_details['Response']['DestinationId'] ) )
+                $funds_source = $transaction_details['Response']['DestinationId'];
 
             // Reset request
             $params = array(
@@ -707,8 +705,6 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
             );
 
             $response = $this->curl( $url, 'POST', $params );
-
-            $this->log( "$this->curl( $url, 'POST', $params ): " . print_r($response, true) );
 
             // Process Dwolla's response
             if ( !$response ) {
@@ -744,7 +740,7 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
      */
     public function getError()
     {
-        if (!$this->errorMessage) {
+        if ( !$this->errorMessage ) {
             return false;
         }
 
@@ -769,53 +765,54 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
 
     /**
      * Executes GET requests against API
-     * From https://github.com/Dwolla/dwolla-php
+     * Modified from https://github.com/Dwolla/dwolla-php
      * 
      * @param string $request
      * @param array $params
      * @return array|null Array of results or null if json_decode fails in curl()
      */
-    function curl($url, $method = 'GET', $params = array())
-    {
+    function curl( $url, $method = 'GET', $params = array() ) {
+        $options = $this->options;
+
         // Encode POST data
-        $data = json_encode($params);
+        $data = json_encode( $params );
 
         // Set request headers
-        $headers = array('Accept: application/json', 'Content-Type: application/json;charset=UTF-8');
-        if ($method == 'POST') {
-            $headers[] = 'Content-Length: ' . strlen($data);
+        $headers = array( 'Accept: application/json', 'Content-Type: application/json;charset=UTF-8' );
+        if ( $method == 'POST' ) {
+            $headers[] = 'Content-Length: ' . strlen( $data );
         }
 
         // Set up our CURL request
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt( $ch, CURLOPT_URL, $url );
+        curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, $method );
+        curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
+        curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 5 );
+        curl_setopt( $ch, CURLOPT_TIMEOUT, 5 );
+        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+        curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
+        curl_setopt( $ch, CURLOPT_HEADER, false );
+        curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
 
         // Windows require this certificate
-        if( strtoupper (substr(PHP_OS, 0,3)) == 'WIN' ) {
-          $ca = dirname(__FILE__);
-          curl_setopt($ch, CURLOPT_CAINFO, $ca); // Set the location of the CA-bundle
-          curl_setopt($ch, CURLOPT_CAINFO, $ca . '/cacert.pem'); // Set the location of the CA-bundle
+        if( strtoupper ( substr( PHP_OS, 0,3 ) ) == 'WIN' ) {
+          $ca = dirname( __FILE__ );
+          curl_setopt( $ch, CURLOPT_CAINFO, $ca ); // Set the location of the CA-bundle
+          curl_setopt( $ch, CURLOPT_CAINFO, $ca . '/cacert.pem' ); // Set the location of the CA-bundle
         }
 
         // Initiate request
-        $rawData = curl_exec($ch);
+        $rawData = curl_exec( $ch );
 
         // If HTTP response wasn't 200,
         // log it as an error!
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if ($code !== 200) {
-            if($this->debugMode) {
+        $code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+        if ( $code !== 200 ) {
+            if( $options['test'] ) {
                 echo "Here is all the information we got from curl: \n";
-                print_r(curl_getinfo($ch));
-                print_r(curl_error($ch));
+                print_r( curl_getinfo( $ch ) );
+                print_r( curl_error( $ch ) );
             }
 
             return array(
@@ -825,15 +822,16 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
         }
 
         // All done with CURL
-        curl_close($ch);
+        curl_close( $ch );
 
         // Otherwise, assume we got some
         // sort of a response
-        return json_decode($rawData, true);
+        return json_decode( $rawData, true );
     }
 
     /**
      * Verify the signature returned from Webhook notifications
+     * Modified from https://github.com/Dwolla/dwolla-php
      * 
      * @return bool Is signature valid?
      */
@@ -860,7 +858,7 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
 
     /**
      * Verify the signature returned from Offsite-Gateway Redirect
-     * From https://github.com/Dwolla/dwolla-php
+     * Modified from https://github.com/Dwolla/dwolla-php
      * 
      * @param string $signature
      * @param string $checkoutId
@@ -894,7 +892,7 @@ class CampTix_Payment_Method_Dwolla extends CampTix_Payment_Method {
           return $this->setError('Dwolla signature verification failed.');
         }
 
-        return TRUE;
+        return true;
     }
     
 }
